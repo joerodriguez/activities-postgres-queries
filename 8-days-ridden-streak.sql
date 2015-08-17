@@ -1,4 +1,4 @@
--- get all days with atleast 1 ride
+-- get all days with at least 1 ride
 SELECT
   trail_id,
   date_trunc('day', completed_at) :: DATE AS day
@@ -16,11 +16,15 @@ WITH trail_counts AS (
 SELECT
   day,
   trail_id,
-  --day - '2000-01-01' :: DATE -
+  day - now() :: DATE -
   row_number()
   OVER (PARTITION BY trail_id
     ORDER BY day) AS grouping
 FROM trail_counts;
+
+-- row_number will increase by 1 for each result
+-- day - now() will also increase by 1 for consecutive days
+-- taking the difference yields the same "grouping"
 
 -- putting it all together
 WITH trail_counts AS (
@@ -32,8 +36,8 @@ WITH trail_counts AS (
 )
   , consecutive_groups AS (
     SELECT
-      trail_id,
-      day - '2000-01-01' :: DATE -
+      trail_id, day,
+      day - now() :: DATE -
       row_number()
       OVER (PARTITION BY trail_id
         ORDER BY day) AS grouping
@@ -48,8 +52,10 @@ WITH trail_counts AS (
 )
 
 SELECT
-  trail_id,
-  max(streak)
+  trails.id,
+  trails.name,
+  max(streak) as streak
 FROM all_streak_counts
-GROUP BY trail_id
-ORDER BY 2 DESC;
+  join trails on trail_id = trails.id
+GROUP BY 1, 2
+ORDER BY streak DESC;
